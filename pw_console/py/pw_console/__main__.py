@@ -14,25 +14,21 @@
 """Pigweed console main entry point."""
 
 import argparse
-import asyncio
 import logging
 import os
 import sys
 from datetime import datetime
 from pathlib import Path
 
-from IPython.lib.pretty import pretty  # type: ignore
-
 import pw_cli.log
 from pw_tokenizer.database import LoadTokenDatabases
 
-from pw_console.console_app import ConsoleApp
-from pw_console.key_bindings import create_key_bindings
+from pw_console.console_app import embed, FAKE_DEVICE_LOGGER_NAME
 
 _LOG = logging.getLogger(__package__)
 
 
-def build_argument_parser():
+def build_argument_parser() -> argparse.ArgumentParser:
     """Setup argparse."""
     def log_level(arg: str) -> int:
         try:
@@ -68,9 +64,9 @@ def build_argument_parser():
                         action=LoadTokenDatabases,
                         help="Path to tokenizer database csv file(s).")
 
-    parser.add_argument("--show-default-keybinds",
+    parser.add_argument("--test-mode",
                         action="store_true",
-                        help="Show default keybindings.")
+                        help="Enable fake log messages for testing purposes.")
 
     log_default_filename = datetime.now().strftime(
         "%Y-%m-%d_%H%M") + "_log.txt"
@@ -97,20 +93,13 @@ def main() -> int:
 
     pw_cli.log.install(args.loglevel, True, False, args.logfile)
 
-    _LOG.debug(pretty(args))
-    _LOG.debug(pretty(unused_extra_args))
+    default_loggers = []
+    if args.test_mode:
+        default_loggers = [_LOG, logging.getLogger(FAKE_DEVICE_LOGGER_NAME)]
 
-    console_app = ConsoleApp()
-
-    if args.show_default_keybinds:
-        default_keys = create_key_bindings(console_app)
-        # Figure out how to print nice default bindings
-        for binding in default_keys.bindings:
-            print(binding.keys, binding.handler.__name__)
-        return 0
-
-    async_debug = args.loglevel == logging.DEBUG
-    asyncio.run(console_app.run(), debug=async_debug)
+    embed(loggers=default_loggers,
+          command_line_args=args,
+          test_mode=args.test_mode)
     return 0
 
 

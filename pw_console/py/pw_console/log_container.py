@@ -15,6 +15,7 @@
 
 import logging
 import sys
+import time
 
 from collections import deque
 from dataclasses import dataclass
@@ -59,6 +60,8 @@ class LogContainer(logging.Handler):
         self.follow = True
         self.log_content_control = None
         self.pt_application = None
+        self._ui_update_frequency = 0.5
+        self._last_ui_update_time = time.time()
 
         super().__init__()
 
@@ -90,15 +93,29 @@ class LogContainer(logging.Handler):
         if self.follow:
             self.line_index = max(0, len(self.logs) - 1)
 
+    def _update_prompt_toolkit_ui(self):
+        """Update Prompt Toolkit UI if a certain amount of time has passed."""
+        emit_time = time.time()
+        # Has 500ms passed since last UI redraw?
+        if emit_time > self._last_ui_update_time + self._ui_update_frequency:
+            # Update last log time
+            self._last_ui_update_time = emit_time
+
+            # Trigger Prompt Toolkit UI redraw.
+            # TODO(tonymd): Clean up this API
+            console_app = self.log_content_control.log_pane.application
+            if hasattr(console_app, 'application'):
+                # Thread safe way of sending a repaint trigger to the input
+                # event loop.
+                console_app.application.invalidate()
+
     # logging.Handler emit() fuction. This is called by logging.Handler.handle()
     # We don't implement handle() as it is done parent class with thread safety
     # and filters applied.
     def emit(self, record):
         """Process log record."""
         self._append_log(record)
-        console_app = self.log_content_control.log_pane.application
-        if hasattr(console_app, 'application'):
-            console_app.application.invalidate()
+        self._update_prompt_toolkit_ui()
 
     def draw(self) -> List:
         """Return this log line as a FormattedTextControl."""

@@ -13,10 +13,12 @@
 # the License.
 """ConsoleApp control class."""
 
+import argparse
 import builtins
 import asyncio
 import logging
-from typing import Iterable
+import time
+from typing import Iterable, Optional
 
 from IPython.lib.pretty import pretty  # type: ignore
 from prompt_toolkit.application import Application
@@ -43,8 +45,6 @@ from prompt_toolkit.widgets import (
 )
 from prompt_toolkit.key_binding import merge_key_bindings
 from ptpython.key_bindings import load_python_bindings  # type: ignore
-# load_confirm_exit_bindings,
-# load_sidebar_bindings,
 
 import pw_cli
 from pw_console.help_window import HelpWindow
@@ -54,7 +54,8 @@ from pw_console.repl_pane import ReplPane
 from pw_console.pw_ptpython_repl import PwPtPythonRepl
 
 _LOG = logging.getLogger(__package__)
-_DEVICE_LOG = logging.getLogger('device.1')
+FAKE_DEVICE_LOGGER_NAME = "fake_device.1"
+_FAKE_DEVICE_LOG = logging.getLogger(FAKE_DEVICE_LOGGER_NAME)
 
 BAR_STYLE = "bg:#fdd1ff #432445"
 
@@ -137,34 +138,41 @@ class MessageToolbarBar(ConditionalContainer):
 def embed(
     global_vars=None,
     local_vars=None,
-    loggers=Iterable,
+    loggers: Optional[Iterable] = None,
+    command_line_args: Optional[argparse.Namespace] = None,
+    test_mode=False,
 ) -> None:
-    # Default global_vars/locals
-    if global_vars is None:
-        global_vars = {
-            "__name__": "__main__",
-            "__package__": None,
-            "__doc__": None,
-            "__builtins__": builtins,
-        }
-
-    local_vars = local_vars or global_vars
-
     console_app = ConsoleApp(
         global_vars=global_vars,
         local_vars=local_vars,
     )
 
-    for logger in loggers:
-        logger.addHandler(console_app.log_pane.log_container)
+    if loggers:
+        for logger in loggers:
+            console_app.add_log_handler(logger)
 
-    asyncio.run(console_app.run())
+    if command_line_args:
+        _LOG.debug(pretty(command_line_args))
+
+    # async_debug = args.loglevel == logging.DEBUG
+    asyncio.run(console_app.run(test_mode=test_mode), debug=True)
 
 
 class ConsoleApp:
     # pylint: disable=too-many-instance-attributes
     """The main ConsoleApp class containing the whole console."""
     def __init__(self, global_vars=None, local_vars=None):
+
+        # Default global_vars/locals
+        if global_vars is None:
+            global_vars = {
+                "__name__": "__main__",
+                "__package__": None,
+                "__doc__": None,
+                "__builtins__": builtins,
+            }
+
+        local_vars = local_vars or global_vars
 
         self.message = [
             ("class:logo", " Pigweed CLI v0.1 "),
@@ -180,18 +188,15 @@ class ConsoleApp:
 
         self.log_pane = LogPane(application=self)
 
+        # Setup log_pane formatting
         # Copy of pw_cli log formatter
         colors = pw_cli.color.colors(True)
         timestamp_fmt = colors.black_on_white('%(asctime)s') + ' '
         formatter = logging.Formatter(
             timestamp_fmt + '%(levelname)s %(message)s', '%Y%m%d %H:%M:%S')
 
-        # Don't send to globabl logging
-        # _DEVICE_LOG.propagate = False
         self.log_pane.log_container.setLevel(logging.DEBUG)
         self.log_pane.log_container.setFormatter(formatter)
-        _DEVICE_LOG.addHandler(self.log_pane.log_container)
-        _LOG.addHandler(self.log_pane.log_container)
 
         self.pw_ptpython_repl = PwPtPythonRepl(
             create_app=False,
@@ -257,7 +262,6 @@ class ConsoleApp:
 
         self.layout: Layout = Layout(self.root_container,
                                      focused_element=self.log_pane)
-        _LOG.debug(pretty(self))
 
         self.application: Application = Application(
             layout=self.layout,
@@ -270,6 +274,11 @@ class ConsoleApp:
             enable_page_navigation_bindings=True,
             full_screen=True,
             mouse_support=True)
+
+    def add_log_handler(self, logger_instance):
+        # Don't send to globabl logging
+        # logger_instance.propagate = False
+        logger_instance.addHandler(self.log_pane.log_container)
 
     def _create_help_window(self):
         help_window = HelpWindow(self)
@@ -316,25 +325,33 @@ class ConsoleApp:
         """Quit the console prompt_toolkit application UI."""
         self.application.exit()
 
-    async def run(self):
+    async def run(self, test_mode=False):
         """Start the prompt_toolkit UI."""
-        unused_result = await self.application.run_async(
-            set_exception_handler=True)
-        # Application.run_async() is similar to:
-        # asyncio.get_event_loop().run_until_complete()
-        # Params:
-        # pre_run: Optional callable, which is called right after the
-        #          "reset" of the application.
-        # set_exception_handler: When set, in case of an exception, go
-        #                        out of the alternate screen and hide
-        #                        the application, display the exception,
-        #                        and wait for the user to press ENTER.
+        if test_mode:
+            background_log_task = asyncio.create_task(self.log_forever())
 
-    def add_log_line(self, log_record):
-        """Function to add a new log line."""
-        _DEVICE_LOG.info(log_record)
-        # Thread safe way of sending a repaint trigger to the input event loop.
-        self.application.invalidate()
+        try:
+            unused_result = await self.application.run_async(
+                set_exception_handler=True)
+            # Application.run_async() is similar to:
+            # asyncio.get_event_loop().run_until_complete()
+            # Params:
+            # pre_run: Optional callable, which is called right after the
+            #          "reset" of the application.
+            # set_exception_handler: When set, in case of an exception, go
+            #                        out of the alternate screen and hide
+            #                        the application, display the exception,
+            #                        and wait for the user to press ENTER.
+        finally:
+            if test_mode:
+                background_log_task.cancel()
+
+    async def log_forever(self):
+        """Test mode async log generator coroutine that runs forever."""
+        while True:
+            await asyncio.sleep(1)
+            new_log_line = "log_forever {}".format(time.time())
+            _FAKE_DEVICE_LOG.info(new_log_line)
 
     @property
     def add_key_binding(self):
