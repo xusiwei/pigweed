@@ -48,51 +48,51 @@ def create_key_bindings(console_app):
 
     bindings = KeyBindings()
 
-    @bindings.add("f1")
+    @bindings.add('f1')
     def show_help(event):
         """Toggle help window."""
         _LOG.debug(pretty(event))
         console_app.toggle_help()
 
-    @bindings.add("q", filter=Condition(lambda: console_app.show_help_window))
+    @bindings.add('q', filter=Condition(lambda: console_app.show_help_window))
     def close_help_window(event):
         """Hide help window."""
         console_app.toggle_help()
 
-    @bindings.add("c-c", filter=has_focus(console_app.pw_ptpython_repl))
+    @bindings.add('c-c', filter=has_focus(console_app.pw_ptpython_repl))
     def handle_ctrl_c(event):
         """Reset the python repl on Ctrl-c"""
         console_app.pw_ptpython_repl.default_buffer.reset()
 
-    @bindings.add("c-d", filter=has_focus(console_app.pw_ptpython_repl))
+    @bindings.add('c-d', filter=has_focus(console_app.pw_ptpython_repl))
     def handle_ctrl_d(event):
         """Do nothing on ctrl-d."""
         pass
 
-    @bindings.add("f2")
+    @bindings.add('f2')
     def toggle_vertical_split(event):
         """Toggle horizontal and vertical window splitting."""
         _LOG.debug(pretty(event))
         console_app.toggle_vertical_split()
 
-    @bindings.add("c-w")
-    @bindings.add("c-q")
+    @bindings.add('c-w')
+    @bindings.add('c-q')
     def exit_(event):
         """Quit the console application."""
         event.app.exit()
 
     # Test calling the add decorator as function
-    exit_ = bindings.add("c-e")(exit_)
+    exit_ = bindings.add('c-e')(exit_)
 
-    @bindings.add("s-tab")
-    @bindings.add("c-right")
-    @bindings.add("c-down")
+    @bindings.add('s-tab')
+    @bindings.add('c-right')
+    @bindings.add('c-down')
     def app_focus_next(event):
         """Move focus to the next widget."""
         focus_next(event)
 
-    @bindings.add("c-left")
-    @bindings.add("c-up")
+    @bindings.add('c-left')
+    @bindings.add('c-up')
     def app_focus_previous(event):
         """Move focus to the previous widget."""
         focus_previous(event)

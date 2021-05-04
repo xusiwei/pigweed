@@ -73,7 +73,7 @@ class ReplPaneBottomToolbarBar(ConditionalContainer):
         return [
             # TODO: Clicking on the actual logs status bar doesn't focus; only
             # when clicking on the log content itself. Fix this.
-            ("class:keyhelp", " [click to focus] ",
+            ('class:keyhelp', ' [click to focus] ',
              partial(ReplPaneBottomToolbarBar.mouse_handler, repl_pane)),
         ]
 
@@ -82,7 +82,7 @@ class ReplPaneBottomToolbarBar(ConditionalContainer):
             VSplit(
                 [
                     Window(content=FormattedTextControl(
-                        [("class:logo", " Python Input ",
+                        [('class:logo', ' Python Input ',
                           partial(ReplPaneBottomToolbarBar.mouse_handler,
                                   repl_pane))]),
                            align=WindowAlign.LEFT,
@@ -95,13 +95,13 @@ class ReplPaneBottomToolbarBar(ConditionalContainer):
                            dont_extend_width=False),
                     Window(
                         content=FormattedTextControl(
-                            [("class:bottom_toolbar_colored_text",
-                              " [Enter]: run code ")]),
+                            [('class:bottom_toolbar_colored_text',
+                              ' [Enter]: run code ')]),
                         align=WindowAlign.RIGHT,
                         dont_extend_width=True),
                 ],
                 height=1,
-                style="class:bottom_toolbar",
+                style='class:bottom_toolbar',
                 align=WindowAlign.LEFT),
             filter=Condition(lambda: repl_pane.show_bottom_toolbar))
 
@@ -136,10 +136,10 @@ class ReplPane:
                 rows = output_height  # type: ignore
             else:
                 rows = output_height.min  # type: ignore
-            help_text = ("\n" * rows) + help_text
+            help_text = ('\n' * rows) + help_text
 
         self.output_field = TextArea(
-            style="class:output-field",
+            style='class:output-field',
             height=output_height,
             # text=help_text,
             focusable=False,
@@ -153,10 +153,10 @@ class ReplPane:
         self.container = HSplit([
             self.output_field,
             # Dashed line separator
-            Window(content=FormattedTextControl([("class:logo",
-                                                  " Python Results ")]),
+            Window(content=FormattedTextControl([('class:logo',
+                                                  ' Python Results ')]),
                    height=1,
-                   style="class:menu-bar"),
+                   style='class:menu-bar'),
             self.pw_ptpython_repl,
             self.bottom_toolbar,
         ])

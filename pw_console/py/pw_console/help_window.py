@@ -34,23 +34,23 @@ class HelpWindow(ConditionalContainer):
     def get_tokens(self, application):
         """Get text for the help window FormattedTextControl."""
         if application.show_help_window:
-            return [("class:help_window_content", self.help_text)]
+            return [('class:help_window_content', self.help_text)]
         return []
 
     def __init__(self, application):
         self.help_text_section = {}
         self.max_description_width = 0
-        self.help_text = ""
+        self.help_text = ''
 
         super().__init__(
             Frame(body=Box(
                 body=Window(
                     FormattedTextControl(partial(self.get_tokens,
                                                  application)),
-                    style="class:help_window_content",
+                    style='class:help_window_content',
                 ),
                 padding=1,
-                char=" ",
+                char=' ',
             ), ),
             filter=Condition(lambda: application.show_help_window))
 
@@ -63,7 +63,7 @@ class HelpWindow(ConditionalContainer):
             {{ section|center }}
 
             {% for description, key_list in key_dict.items() %}
-            {{ (description+" ").ljust(max_description_width+3, "-") }}  {{ key_list|sort|join(", ") }}
+            {{ (description+' ').ljust(max_description_width+3, '-') }}  {{ key_list|sort|join(', ') }}
             {% endfor %}
 
             {% endfor %}

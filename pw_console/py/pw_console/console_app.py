@@ -54,42 +54,42 @@ from pw_console.repl_pane import ReplPane
 from pw_console.pw_ptpython_repl import PwPtPythonRepl
 
 _LOG = logging.getLogger(__package__)
-FAKE_DEVICE_LOGGER_NAME = "fake_device.1"
+FAKE_DEVICE_LOGGER_NAME = 'fake_device.1'
 _FAKE_DEVICE_LOG = logging.getLogger(FAKE_DEVICE_LOGGER_NAME)
 
-BAR_STYLE = "bg:#fdd1ff #432445"
+BAR_STYLE = 'bg:#fdd1ff #432445'
 
 pw_console_styles = Style.from_dict({
-    "top_toolbar_colored_background": "bg:#c678dd #282c34",
-    "top_toolbar": "bg:#3e4452 #abb2bf",
-    "top_toolbar_colored_text": "bg:#282c34 #c678dd",
+    'top_toolbar_colored_background': 'bg:#c678dd #282c34',
+    'top_toolbar': 'bg:#3e4452 #abb2bf',
+    'top_toolbar_colored_text': 'bg:#282c34 #c678dd',
 
-    "bottom_toolbar_colored_background": BAR_STYLE,
-    "bottom_toolbar": BAR_STYLE,
-    "bottom_toolbar_colored_text": BAR_STYLE,
+    'bottom_toolbar_colored_background': BAR_STYLE,
+    'bottom_toolbar': BAR_STYLE,
+    'bottom_toolbar_colored_text': BAR_STYLE,
 
-    "frame.border": "",
-    "shadow": "bg:#282c34",
-    "message": "bg:#282c34 #c678dd",
-    # "scrollbar.arrow"
-    # "scrollbar.start"
-    "scrollbar.background": "bg:#3e4452 #abb2bf",
-    "scrollbar.button": "bg:#7f3285 #282c34",
-    # "scrollbar.end"
+    'frame.border': '',
+    'shadow': 'bg:#282c34',
+    'message': 'bg:#282c34 #c678dd',
+    # 'scrollbar.arrow'
+    # 'scrollbar.start'
+    'scrollbar.background': 'bg:#3e4452 #abb2bf',
+    'scrollbar.button': 'bg:#7f3285 #282c34',
+    # 'scrollbar.end'
 
-    "menu": "bg:#3e4452 #bbc2cf",
+    'menu': 'bg:#3e4452 #bbc2cf',
 
-    "menu-bar.selected-item": "bg:#61afef #282c34",
-    "menu-border": "bg:#282c34 #61afef",
+    'menu-bar.selected-item': 'bg:#61afef #282c34',
+    'menu-border': 'bg:#282c34 #61afef',
 
-    "menu-bar": BAR_STYLE,
+    'menu-bar': BAR_STYLE,
 
     # Top bar logo + critical shortcuts
-    "logo":    BAR_STYLE + " bold",
-    "keybind": BAR_STYLE,
-    "keyhelp": BAR_STYLE,
+    'logo':    BAR_STYLE + ' bold',
+    'keybind': BAR_STYLE,
+    'keyhelp': BAR_STYLE,
 
-    "help_window_content": "bg:default default",
+    'help_window_content': 'bg:default default',
 }) # yapf: disable
 
 
@@ -104,21 +104,21 @@ def _create_top_toolbar() -> VSplit:
     """Create the global top toolbar."""
     return VSplit([
         Window(content=FormattedTextControl(
-            [("class:top_toolbar_colored_background", " LeftText ",
+            [('class:top_toolbar_colored_background', ' LeftText ',
               toolbar_mouse_handler)]),
                align=WindowAlign.LEFT,
                dont_extend_width=True),
         Window(content=FormattedTextControl(
-            [("class:top_toolbar", " center text ")]),
+            [('class:top_toolbar', ' center text ')]),
                align=WindowAlign.LEFT,
                dont_extend_width=False),
         Window(content=FormattedTextControl(
-            [("class:top_toolbar_colored_text", " right-text ")]),
+            [('class:top_toolbar_colored_text', ' right-text ')]),
                align=WindowAlign.RIGHT,
                dont_extend_width=True),
     ],
                   height=1,
-                  style="class:top_toolbar")
+                  style='class:top_toolbar')
 
 
 class MessageToolbarBar(ConditionalContainer):
@@ -132,7 +132,7 @@ class MessageToolbarBar(ConditionalContainer):
         super().__init__(
             FormattedTextToolbar(get_tokens),
             filter=Condition(
-                lambda: application.message and application.message != ""))
+                lambda: application.message and application.message != ''))
 
 
 def embed(
@@ -166,23 +166,23 @@ class ConsoleApp:
         # Default global_vars/locals
         if global_vars is None:
             global_vars = {
-                "__name__": "__main__",
-                "__package__": None,
-                "__doc__": None,
-                "__builtins__": builtins,
+                '__name__': '__main__',
+                '__package__': None,
+                '__doc__': None,
+                '__builtins__': builtins,
             }
 
         local_vars = local_vars or global_vars
 
         self.message = [
-            ("class:logo", " Pigweed CLI v0.1 "),
-            ("class:menu-bar", "| Mouse supported; click on pane to focus | "),
-            ("class:keybind", "F1"),
-            ("class:keyhelp", ":Help "),
-            ("class:keybind", "Ctrl-W"),
-            ("class:keyhelp", ":Quit "),
+            ('class:logo', ' Pigweed CLI v0.1 '),
+            ('class:menu-bar', '| Mouse supported; click on pane to focus | '),
+            ('class:keybind', 'F1'),
+            ('class:keyhelp', ':Help '),
+            ('class:keybind', 'Ctrl-W'),
+            ('class:keyhelp', ':Quit '),
         ]
-        # "Pigweed CLI v0.1 | Mouse supported | F1:Help F7:Quit."
+        # 'Pigweed CLI v0.1 | Mouse supported | F1:Help F7:Quit.'
         self.show_help_window = False
         self.vertical_split = False
 
@@ -215,23 +215,23 @@ class ConsoleApp:
 
         self.menu_items = [
             MenuItem(
-                "[File] ",
+                '[File] ',
                 children=[
-                    MenuItem("Exit", handler=self.exit_console),
+                    MenuItem('Exit', handler=self.exit_console),
                 ],
             ),
             MenuItem(
-                "[View] ",
+                '[View] ',
                 children=[
-                    MenuItem("Toggle Vertical/Horizontal Split",
+                    MenuItem('Toggle Vertical/Horizontal Split',
                              handler=self.toggle_vertical_split),
-                    MenuItem("Toggle Log line Wrapping",
+                    MenuItem('Toggle Log line Wrapping',
                              handler=self.toggle_log_line_wrapping),
                 ],
             ),
             MenuItem(
-                "[Info] ",
-                children=[MenuItem("Help", handler=self.toggle_help)],
+                '[Info] ',
+                children=[MenuItem('Help', handler=self.toggle_help)],
             ),
         ]
 
@@ -284,7 +284,7 @@ class ConsoleApp:
         help_window = HelpWindow(self)
         # Create the help window and generate help text.
         # Add global key bindings to the help text
-        help_window.add_keybind_help_text("Global", self.key_bindings)
+        help_window.add_keybind_help_text('Global', self.key_bindings)
         # Add activated plugin key bindings to the help text
         for pane in self.active_panes:
             for key_bindings in pane.get_all_key_bindings():
@@ -350,7 +350,7 @@ class ConsoleApp:
         """Test mode async log generator coroutine that runs forever."""
         while True:
             await asyncio.sleep(1)
-            new_log_line = "log_forever {}".format(time.time())
+            new_log_line = 'log_forever {}'.format(time.time())
             _FAKE_DEVICE_LOG.info(new_log_line)
 
     @property

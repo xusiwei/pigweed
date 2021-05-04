@@ -30,8 +30,8 @@ class PwPtPythonRepl(repl.PythonRepl):
         #self.ptpython_layout.show_exit_confirmation = False
         super().__init__(*args,
                          history_filename=(Path.home() /
-                                           ".pw_console_history").as_posix(),
-                         color_depth="256 colors",
+                                           '.pw_console_history').as_posix(),
+                         color_depth='256 colors',
                          _input_buffer_height=8,
                          **kwargs)
         # self.use_code_colorscheme('monokai')
@@ -52,7 +52,7 @@ class PwPtPythonRepl(repl.PythonRepl):
         # Format the result.
         formatted_result = super().show_result(result, print_to_stdout=False)  # pylint: disable=assignment-from-none,unexpected-keyword-arg
         # Throw away style info.
-        unformatted_result = "".join(
+        unformatted_result = ''.join(
             list(formatted_tuple[1] for formatted_tuple in formatted_result))  # pylint: disable=not-an-iterable
 
         # Get old buffer contents and append the result
@@ -75,7 +75,7 @@ class PwPtPythonRepl(repl.PythonRepl):
         # Get old buffer contents
         new_text = self.repl_pane.output_field.buffer.text
         # Append the prompt and input
-        new_text += "\n\n>>> " + buff.text + "\n"
+        new_text += '\n\n>>> ' + buff.text + '\n'
         # Set the output buffer to new_text and move the cursor to the end
         self.repl_pane.output_field.buffer.document = Document(
             text=new_text, cursor_position=len(new_text))

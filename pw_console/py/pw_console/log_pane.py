@@ -61,15 +61,15 @@ class LogPaneBottomToolbarBar(ConditionalContainer):
                                 log_pane)
         if has_focus(log_pane.__pt_container__())():
             return [
-                ("", " [FOCUSED] ", mouse_handler),
-                ("class:keybind", "w", mouse_handler),
+                ('', ' [FOCUSED] ', mouse_handler),
+                ('class:keybind', 'w', mouse_handler),
                 # TODO: Indicate wrap on/off
-                ("class:keyhelp", ":Wrap ", mouse_handler),
+                ('class:keyhelp', ':Wrap ', mouse_handler),
             ]
         return [
             # TODO: Clicking on the actual logs status bar doesn't focus; only
             # when clicking on the log content itself. Fix this.
-            ("class:keyhelp", " [click to focus] ", mouse_handler),
+            ('class:keyhelp', ' [click to focus] ', mouse_handler),
         ]
 
     def __init__(self, log_pane):
@@ -79,7 +79,7 @@ class LogPaneBottomToolbarBar(ConditionalContainer):
                     Window(
                         content=FormattedTextControl(
                             # Logs [FOCUSED] w:Toggle wrap
-                            [("class:logo", " Logs ",
+                            [('class:logo', ' Logs ',
                               partial(LogPaneBottomToolbarBar.mouse_handler,
                                       log_pane))]),
                         align=WindowAlign.LEFT,
@@ -90,15 +90,15 @@ class LogPaneBottomToolbarBar(ConditionalContainer):
                            align=WindowAlign.LEFT,
                            dont_extend_width=False),
                     # Window(content=FormattedTextControl(
-                    #     [("class:bottom_toolbar_colored_text",
-                    #       " file_name=2021-03-05_1454_log.txt ",
+                    #     [('class:bottom_toolbar_colored_text',
+                    #       ' file_name=2021-03-05_1454_log.txt ',
                     #       partial(LogPaneBottomToolbarBar.mouse_handler,
                     #               log_pane))]),
                     #        align=WindowAlign.RIGHT,
                     #        dont_extend_width=True),
                 ],
                 height=1,
-                style="class:bottom_toolbar",
+                style='class:bottom_toolbar',
                 align=WindowAlign.LEFT),
             filter=Condition(lambda: log_pane.show_bottom_toolbar))
 
@@ -112,7 +112,7 @@ class LogContentControl(FormattedTextControl):
             return None
         # Example
         # Log: '20210418 12:32:23 INF '
-        return "                      "
+        return '                      '
 
     def __init__(self, log_pane, *args, **kwargs):
         self.log_pane = log_pane
@@ -120,30 +120,30 @@ class LogContentControl(FormattedTextControl):
         # Key bindings.
         key_bindings = KeyBindings()
 
-        @key_bindings.add("w")
+        @key_bindings.add('w')
         def _toggle_wrap_lines(_event: KeyPressEvent) -> None:
             """Toggle log line wrapping."""
             self.log_pane.toggle_wrap_lines()
 
-        @key_bindings.add("up")
-        @key_bindings.add("k")
+        @key_bindings.add('up')
+        @key_bindings.add('k')
         def _up(event: KeyPressEvent) -> None:
             """Select next log line."""
-            _LOG.debug(pretty(self) + " " + pretty(event))
+            _LOG.debug(pretty(self) + ' ' + pretty(event))
             # self._selected_index = max(0, self._selected_index - 1)
 
-        @key_bindings.add("down")
-        @key_bindings.add("j")
+        @key_bindings.add('down')
+        @key_bindings.add('j')
         def _down(event: KeyPressEvent) -> None:
             """Select previous log line."""
-            _LOG.debug(pretty(self) + " " + pretty(event))
+            _LOG.debug(pretty(self) + ' ' + pretty(event))
             # self._selected_index = min(len(self.values) - 1,
             #                            self._selected_index + 1)
 
-        @key_bindings.add("pageup")
+        @key_bindings.add('pageup')
         def _pageup(event: KeyPressEvent) -> None:
             """Scroll the logs up by one page."""
-            _LOG.debug(pretty(self) + " " + pretty(event))
+            _LOG.debug(pretty(self) + ' ' + pretty(event))
             # w = event.app.layout.current_window
             # if w.render_info:
             #     self._selected_index = max(
@@ -151,10 +151,10 @@ class LogContentControl(FormattedTextControl):
             #             w.render_info.displayed_lines)
             #     )
 
-        @key_bindings.add("pagedown")
+        @key_bindings.add('pagedown')
         def _pagedown(event: KeyPressEvent) -> None:
             """Scroll the logs down by one page."""
-            _LOG.debug(pretty(self) + " " + pretty(event))
+            _LOG.debug(pretty(self) + ' ' + pretty(event))
             # w = event.app.layout.current_window
             # if w.render_info:
             #     self._selected_index = min(

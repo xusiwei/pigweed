@@ -42,7 +42,7 @@ class LogLine:
     def get_fragments(self) -> List:
         """Return this log line as a list of FormattedText tuples."""
         # Manually make a FormattedText tuple, wrap in a list
-        # return [("class:bottom_toolbar_colored_text", self.record.msg + '\n')]
+        # return [('class:bottom_toolbar_colored_text', self.record.msg + '\n')]
         # Use ANSI, returns a list of tuples
         return ANSI(self.formatted_log + '\n').__pt_formatted_text__()
 
@@ -71,8 +71,8 @@ class LogContainer(logging.Handler):
 
     def get_channel_counts(self):
         """Return the seen channel log counts for the conatiner."""
-        return ", ".join([
-            f"{name}: {count}" for name, count in self.channel_counts.items()
+        return ', '.join([
+            f'{name}: {count}' for name, count in self.channel_counts.items()
         ])
 
     def get_human_byte_size(self):
