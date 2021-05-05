@@ -17,6 +17,7 @@ import argparse
 import logging
 import os
 import sys
+import tempfile
 from datetime import datetime
 from pathlib import Path
 
@@ -91,6 +92,19 @@ def main() -> int:
     if '--' in args.terminal_args:
         args.terminal_args.remove('--')
 
+    if not args.logfile:
+        # Create a temp logfile to prevent logs from appearing over stdout. This
+        # would corrupt the prompt toolkit UI.
+
+        # Grab the current system timestamp as a string.
+        isotime = datetime.now().isoformat(sep='_', timespec='seconds')
+        # Timestamp string should not have colons in it.
+        isotime = isotime.replace(':', '')
+        # Example temp file name: /tmp/pw_console_2021-05-04_151807_8hem6iyq
+        with tempfile.NamedTemporaryFile(prefix=f'{__package__}_{isotime}_',
+                                         delete=False) as log_file:
+            args.logfile = log_file.name
+
     pw_cli.log.install(args.loglevel, True, False, args.logfile)
 
     default_loggers = []
@@ -100,6 +114,10 @@ def main() -> int:
     embed(loggers=default_loggers,
           command_line_args=args,
           test_mode=args.test_mode)
+
+    if args.logfile:
+        print(f'Logs saved to: {args.logfile}')
+
     return 0
 
 

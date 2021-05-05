@@ -47,13 +47,10 @@ class PwPtPythonRepl(repl.PythonRepl):
     def set_repl_pane(self, repl_pane):
         self.repl_pane = repl_pane
 
-    # pylint: disable=arguments-differ
-    def show_result(self, result, print_to_stdout=True):
-        # Format the result.
-        formatted_result = super().show_result(result, print_to_stdout=False)  # pylint: disable=assignment-from-none,unexpected-keyword-arg
+    def _append_result_to_output(self, formatted_text):
         # Throw away style info.
         unformatted_result = ''.join(
-            list(formatted_tuple[1] for formatted_tuple in formatted_result))  # pylint: disable=not-an-iterable
+            list(formatted_tuple[1] for formatted_tuple in formatted_text))  # pylint: disable=not-an-iterable
 
         # Get old buffer contents and append the result
         new_text = self.repl_pane.output_field.buffer.text
@@ -63,9 +60,13 @@ class PwPtPythonRepl(repl.PythonRepl):
         self.repl_pane.output_field.buffer.document = Document(
             text=new_text, cursor_position=len(new_text))
 
+    def show_result(self, result):
+        formatted_result = self._format_result(result)
+        self._append_result_to_output(formatted_result)
+
     def _handle_exception(self, e: BaseException) -> None:
-        # TODO: Display exception in output buffer.
-        _LOG.debug(str(e))
+        formatted_result = self._format_exception_output(e)
+        self._append_result_to_output(formatted_result)
 
     def _accept_handler(self, buff: Buffer) -> bool:
         # Do nothing if no text is entered.

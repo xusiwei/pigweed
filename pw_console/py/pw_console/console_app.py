@@ -243,7 +243,9 @@ class ConsoleApp:
             menu_items=self.menu_items,
             floats=[
                 # Message Echo Area
-                Float(top=0, left=0, height=1,
+                Float(top=0,
+                      right=0,
+                      height=1,
                       content=MessageToolbarBar(self)),
                 # Centered floating Help Window
                 Float(content=self._create_help_window()
