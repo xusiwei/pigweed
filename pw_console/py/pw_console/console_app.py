@@ -18,6 +18,7 @@ import builtins
 import asyncio
 import logging
 import time
+from threading import Thread
 from typing import Iterable, Optional
 
 from IPython.lib.pretty import pretty  # type: ignore
@@ -154,7 +155,9 @@ def embed(
     if command_line_args:
         _LOG.debug(pretty(command_line_args))
 
-    # async_debug = args.loglevel == logging.DEBUG
+    # Start a thread for running user code.
+    console_app.start_user_code_thread()
+    # Start the prompt toolkit app
     asyncio.run(console_app.run(test_mode=test_mode), debug=True)
 
 
@@ -173,6 +176,8 @@ class ConsoleApp:
             }
 
         local_vars = local_vars or global_vars
+
+        self.user_code_loop = asyncio.new_event_loop()
 
         self.message = [
             ('class:logo', ' Pigweed CLI v0.1 '),
@@ -276,6 +281,18 @@ class ConsoleApp:
             enable_page_navigation_bindings=True,
             full_screen=True,
             mouse_support=True)
+
+    def _user_code_thread_entry(self):
+        """Entry point for the user code thread."""
+        asyncio.set_event_loop(self.user_code_loop)
+        self.user_code_loop.run_forever()
+
+    def start_user_code_thread(self):
+        """Create a thread for running user code so the UI isn't blocked."""
+        thread = Thread(target=self._user_code_thread_entry,
+                        args=(),
+                        daemon=True)
+        thread.start()
 
     def add_log_handler(self, logger_instance):
         # Don't send to globabl logging

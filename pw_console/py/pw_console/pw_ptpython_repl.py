@@ -13,11 +13,13 @@
 # the License.
 """PwPtPythonPane class."""
 
+import asyncio
 import logging
 from pathlib import Path
 
 from prompt_toolkit.buffer import Buffer
 from prompt_toolkit.document import Document
+from prompt_toolkit.patch_stdout import patch_stdout
 from ptpython import repl  # type: ignore
 
 _LOG = logging.getLogger(__package__)
@@ -68,6 +70,12 @@ class PwPtPythonRepl(repl.PythonRepl):
         formatted_result = self._format_exception_output(e)
         self._append_result_to_output(formatted_result)
 
+    def user_code_complete_callback(self, unused_future):
+        """Callback to run after user repl code is finished."""
+        # TODO: Maybe show result as a log line?
+        # Trigger a prompt_toolkit application redraw.
+        self.repl_pane.application.application.invalidate()
+
     def _accept_handler(self, buff: Buffer) -> bool:
         # Do nothing if no text is entered.
         if len(buff.text) == 0:
@@ -81,11 +89,15 @@ class PwPtPythonRepl(repl.PythonRepl):
         self.repl_pane.output_field.buffer.document = Document(
             text=new_text, cursor_position=len(new_text))
 
-        # self._add_to_namespace()
-        # try:
-        self.run_and_show_expression(buff.text)
-        # finally:
-        #     self._remove_from_namespace()
+        # TODO: patch_stdout doesn't seem to work here.
+        with patch_stdout():
+            # Execute the repl code in the user_code thread loop
+            future = asyncio.run_coroutine_threadsafe(
+                self.run_and_show_expression_async(buff.text),
+                self.repl_pane.application.user_code_loop)
+            # Run user_code_complete_callback when done.
+            future.add_done_callback(self.user_code_complete_callback)
+
         # TODO: Return True if exception is found.
         # Don't keep input for now. Return True to keep input text.
         return False
