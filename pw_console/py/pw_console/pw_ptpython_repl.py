@@ -19,7 +19,8 @@ from pathlib import Path
 
 from prompt_toolkit.buffer import Buffer
 from prompt_toolkit.document import Document
-from prompt_toolkit.patch_stdout import patch_stdout
+# TODO: Use patch_stdout for running user repl code.
+# from prompt_toolkit.patch_stdout import patch_stdout
 from ptpython import repl  # type: ignore
 
 _LOG = logging.getLogger(__package__)
@@ -63,7 +64,7 @@ class PwPtPythonRepl(repl.PythonRepl):
             text=new_text, cursor_position=len(new_text))
 
     def show_result(self, result):
-        formatted_result = self._format_result(result)
+        formatted_result = self._format_result_output(result)
         self._append_result_to_output(formatted_result)
 
     def _handle_exception(self, e: BaseException) -> None:
@@ -90,13 +91,14 @@ class PwPtPythonRepl(repl.PythonRepl):
             text=new_text, cursor_position=len(new_text))
 
         # TODO: patch_stdout doesn't seem to work here.
-        with patch_stdout():
-            # Execute the repl code in the user_code thread loop
-            future = asyncio.run_coroutine_threadsafe(
-                self.run_and_show_expression_async(buff.text),
-                self.repl_pane.application.user_code_loop)
-            # Run user_code_complete_callback when done.
-            future.add_done_callback(self.user_code_complete_callback)
+        # with patch_stdout():
+
+        # Execute the repl code in the user_code thread loop
+        future = asyncio.run_coroutine_threadsafe(
+            self.run_and_show_expression_async(buff.text),
+            self.repl_pane.application.user_code_loop)
+        # Run user_code_complete_callback() when done.
+        future.add_done_callback(self.user_code_complete_callback)
 
         # TODO: Return True if exception is found.
         # Don't keep input for now. Return True to keep input text.
