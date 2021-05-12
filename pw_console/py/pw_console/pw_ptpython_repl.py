@@ -15,13 +15,15 @@
 
 import asyncio
 import logging
+import io
+import sys
+from functools import partial
 from pathlib import Path
 
 from prompt_toolkit.buffer import Buffer
-from prompt_toolkit.document import Document
-# TODO: Use patch_stdout for running user repl code.
-# from prompt_toolkit.patch_stdout import patch_stdout
 from ptpython import repl  # type: ignore
+
+from pw_console.utils import remove_formatting
 
 _LOG = logging.getLogger(__package__)
 
@@ -32,6 +34,7 @@ class PwPtPythonRepl(repl.PythonRepl):
         #self.ptpython_layout.show_status_bar = False
         #self.ptpython_layout.show_exit_confirmation = False
         super().__init__(*args,
+                         create_app=False,
                          history_filename=(Path.home() /
                                            '.pw_console_history').as_posix(),
                          color_depth='256 colors',
@@ -43,6 +46,7 @@ class PwPtPythonRepl(repl.PythonRepl):
         self.show_exit_confirmation = False
         self.complete_private_attributes = False
         self.repl_pane = None
+        self._last_result = None
 
     def __pt_container__(self):
         return self.ptpython_layout.root_container
@@ -50,55 +54,103 @@ class PwPtPythonRepl(repl.PythonRepl):
     def set_repl_pane(self, repl_pane):
         self.repl_pane = repl_pane
 
-    def _append_result_to_output(self, formatted_text):
-        # Throw away style info.
-        unformatted_result = ''.join(
-            list(formatted_tuple[1] for formatted_tuple in formatted_text))  # pylint: disable=not-an-iterable
+    def _save_result(self, formatted_text):
+        """Save the last repl execution result."""
+        # TODO: This isn't thread safe.
+        unformatted_result = remove_formatting(formatted_text)
+        # Save last result
+        self._last_result = unformatted_result
 
-        # Get old buffer contents and append the result
-        new_text = self.repl_pane.output_field.buffer.text
-        new_text += unformatted_result
+    def clear_last_result(self):
+        """Erase the last repl execution result."""
+        self._last_result = None
 
-        # Set the output buffer to new_text and move the cursor to the end
-        self.repl_pane.output_field.buffer.document = Document(
-            text=new_text, cursor_position=len(new_text))
+    def _update_output_buffer(self):
+        self.repl_pane.update_output_buffer()
 
     def show_result(self, result):
         formatted_result = self._format_result_output(result)
-        self._append_result_to_output(formatted_result)
+        self._save_result(formatted_result)
 
     def _handle_exception(self, e: BaseException) -> None:
         formatted_result = self._format_exception_output(e)
-        self._append_result_to_output(formatted_result)
+        self._save_result(formatted_result.__pt_formatted_text__())
 
-    def user_code_complete_callback(self, unused_future):
+    def user_code_complete_callback(self, input_text, future):
         """Callback to run after user repl code is finished."""
-        # TODO: Maybe show result as a log line?
+        # If there was an exception it will be saved in self._last_result
+        result = self._last_result
+        # _last_result consumed, erase for the next run.
+        self.clear_last_result()
+
+        stdout_contents = None
+        stderr_contents = None
+        if future.result():
+            future_result = future.result()
+            stdout_contents = future_result['stdout']
+            stderr_contents = future_result['stderr']
+            result_value = future_result['result']
+
+            if result_value is not None:
+                formatted_result = self._format_result_output(result_value)
+                result = remove_formatting(formatted_result)
+
+        # Job is finished, append the last result.
+        self.repl_pane.append_result_to_executed_code(input_text, future,
+                                                      result, stdout_contents,
+                                                      stderr_contents)
+
+        # Rebuild output buffer.
+        self._update_output_buffer()
+
         # Trigger a prompt_toolkit application redraw.
         self.repl_pane.application.application.invalidate()
+
+    async def _run_user_code(self, text):
+        """Run user code and capture stdout+err."""
+
+        original_stdout = sys.stdout
+        original_stderr = sys.stderr
+
+        temp_out = io.StringIO()
+        temp_err = io.StringIO()
+
+        sys.stdout = temp_out
+        sys.stderr = temp_err
+
+        try:
+            result = await self.run_and_show_expression_async(text)
+        finally:
+            sys.stdout = original_stdout
+            sys.stderr = original_stderr
+
+        stdout_contents = temp_out.getvalue()
+        stderr_contents = temp_err.getvalue()
+
+        return {
+            'stdout': stdout_contents,
+            'stderr': stderr_contents,
+            'result': result
+        }
 
     def _accept_handler(self, buff: Buffer) -> bool:
         # Do nothing if no text is entered.
         if len(buff.text) == 0:
             return False
 
-        # Get old buffer contents
-        new_text = self.repl_pane.output_field.buffer.text
-        # Append the prompt and input
-        new_text += '\n\n>>> ' + buff.text + '\n'
-        # Set the output buffer to new_text and move the cursor to the end
-        self.repl_pane.output_field.buffer.document = Document(
-            text=new_text, cursor_position=len(new_text))
-
-        # TODO: patch_stdout doesn't seem to work here.
-        # with patch_stdout():
-
         # Execute the repl code in the user_code thread loop
         future = asyncio.run_coroutine_threadsafe(
-            self.run_and_show_expression_async(buff.text),
+            self._run_user_code(buff.text),
             self.repl_pane.application.user_code_loop)
         # Run user_code_complete_callback() when done.
-        future.add_done_callback(self.user_code_complete_callback)
+        done_callback = partial(self.user_code_complete_callback, buff.text)
+        future.add_done_callback(done_callback)
+
+        # Save the input text and future.
+        self.repl_pane.append_executed_code(buff.text, future)
+
+        # Rebuild output buffer.
+        self._update_output_buffer()
 
         # TODO: Return True if exception is found.
         # Don't keep input for now. Return True to keep input text.

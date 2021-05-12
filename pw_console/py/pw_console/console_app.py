@@ -17,7 +17,6 @@ import argparse
 import builtins
 import asyncio
 import logging
-import time
 from threading import Thread
 from typing import Iterable, Optional
 
@@ -60,6 +59,15 @@ _FAKE_DEVICE_LOG = logging.getLogger(FAKE_DEVICE_LOGGER_NAME)
 
 BAR_STYLE = 'bg:#fdd1ff #432445'
 
+pw_console_colors_base = {
+    'bg-main': '#ffffff',
+    'fg-main': '#000000',
+    'bg-dim': '#f8f8f8',
+    'fg-dim': '#282828',
+    'bg-alt': '#f0f0f0',
+    'fg-alt': '#505050',
+} # yapf: disable
+
 pw_console_styles = Style.from_dict({
     'top_toolbar_colored_background': 'bg:#c678dd #282c34',
     'top_toolbar': 'bg:#3e4452 #abb2bf',
@@ -91,6 +99,9 @@ pw_console_styles = Style.from_dict({
     'keyhelp': BAR_STYLE,
 
     'help_window_content': 'bg:default default',
+
+    'cursor-line': 'bg:#3e4452 nounderline',
+    'selected-log-line': 'bg:#3e4452',
 }) # yapf: disable
 
 
@@ -204,10 +215,10 @@ class ConsoleApp:
         self.log_pane.log_container.setFormatter(formatter)
 
         self.pw_ptpython_repl = PwPtPythonRepl(
-            create_app=False,
             get_globals=lambda: global_vars,
             get_locals=lambda: local_vars,
         )
+
         self.repl_pane = ReplPane(
             application=self,
             python_repl=self.pw_ptpython_repl,
@@ -244,7 +255,7 @@ class ConsoleApp:
         self.key_bindings = create_key_bindings(self)
 
         self.root_container = MenuContainer(
-            body=self._create_root_hsplit(),
+            body=self._create_root_split(),
             menu_items=self.menu_items,
             floats=[
                 # Message Echo Area
@@ -268,10 +279,11 @@ class ConsoleApp:
         )
 
         self.layout: Layout = Layout(self.root_container,
-                                     focused_element=self.log_pane)
+                                     focused_element=self.repl_pane)
 
         self.application: Application = Application(
             layout=self.layout,
+            after_render=self.run_after_render_hooks,
             key_bindings=merge_key_bindings([
                 load_python_bindings(self.pw_ptpython_repl),
                 self.key_bindings,
@@ -286,6 +298,17 @@ class ConsoleApp:
         """Entry point for the user code thread."""
         asyncio.set_event_loop(self.user_code_loop)
         self.user_code_loop.run_forever()
+
+    def run_after_render_hooks(self, *unused_args, **unused_kwargs):
+        # Don't query the terminal size after every render, it's very
+        # slow. Better to let prompt_toolkit handle this and instead save
+        # container sizes at render time.
+        # self.size = self.application.renderer.output.get_size()
+
+        # Run each active pane's after_render_hook if defined.
+        for pane in self.active_panes:
+            if hasattr(pane, 'after_render_hook'):
+                pane.after_render_hook()
 
     def start_user_code_thread(self):
         """Create a thread for running user code so the UI isn't blocked."""
@@ -312,9 +335,15 @@ class ConsoleApp:
         help_window.generate_help_text()
         return help_window
 
-    def _create_root_hsplit(self):
+    def _create_root_split(self):
         if self.vertical_split:
-            self.active_pane_split = VSplit(self.active_panes)
+            self.active_pane_split = VSplit(
+                self.active_panes,
+                # Add a vertical separator between each active window pane.
+                padding=1,
+                padding_char='│',
+                padding_style='',
+            )
         else:
             self.active_pane_split = HSplit(self.active_panes)
 
@@ -330,11 +359,11 @@ class ConsoleApp:
         """Toggle visibility of the help window."""
         self.vertical_split = not self.vertical_split
         # For a root FloatContainer
-        # self.root_container.content = self._create_root_hsplit()
+        # self.root_container.content = self._create_root_split()
         # For a root MenuContainer
         self.root_container.container.content.children[
-            1] = self._create_root_hsplit()
-        self.application.invalidate()
+            1] = self._create_root_split()
+        self.redraw_ui()
 
     def toggle_help(self):
         """Toggle visibility of the help window."""
@@ -343,6 +372,10 @@ class ConsoleApp:
     def exit_console(self):
         """Quit the console prompt_toolkit application UI."""
         self.application.exit()
+
+    def redraw_ui(self):
+        """Redraw the prompt_toolkit UI."""
+        self.application.invalidate()
 
     async def run(self, test_mode=False):
         """Start the prompt_toolkit UI."""
@@ -367,9 +400,39 @@ class ConsoleApp:
 
     async def log_forever(self):
         """Test mode async log generator coroutine that runs forever."""
+        message_count = 0
+        # Sample log lines:
+        # Log message [=         ] # 291
+        # Log message [ =        ] # 292
+        # Log message [  =       ] # 293
+        # Log message [   =      ] # 294
+        # Log message [    =     ] # 295
+        # Log message [     =    ] # 296
+        # Log message [      =   ] # 297
+        # Log message [       =  ] # 298
+        # Log message [        = ] # 299
+        # Log message [         =] # 300
         while True:
-            await asyncio.sleep(1)
-            new_log_line = 'log_forever {}'.format(time.time())
+            await asyncio.sleep(2)
+            bar_size = 10
+            position = message_count % bar_size
+            bar_content = " " * (bar_size - position - 1) + "="
+            if position > 0:
+                bar_content = "=".rjust(position) + " " * (bar_size - position)
+            new_log_line = 'Log message [{}] # {}'.format(
+                bar_content, message_count)
+            if message_count % 10 == 0:
+                new_log_line += (" Lorem ipsum dolor sit amet, consectetur "
+                                 "adipiscing elit.") * 8
+            # Create a log line with linebreaks
+            # if message_count % 11 == 0:
+            #     new_log_line += inspect.cleandoc(""" [PYTHON] START
+            #         In []: import time;
+            #                 def t(s):
+            #                     time.sleep(s)
+            #                     return 't({}) seconds done'.format(s)""")
+
+            message_count += 1
             _FAKE_DEVICE_LOG.info(new_log_line)
 
     @property

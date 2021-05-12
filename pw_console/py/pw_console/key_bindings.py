@@ -62,7 +62,7 @@ def create_key_bindings(console_app):
     @bindings.add('c-c', filter=has_focus(console_app.pw_ptpython_repl))
     def handle_ctrl_c(event):
         """Reset the python repl on Ctrl-c"""
-        console_app.pw_ptpython_repl.default_buffer.reset()
+        console_app.repl_pane.ctrl_c()
 
     @bindings.add('c-d', filter=has_focus(console_app.pw_ptpython_repl))
     def handle_ctrl_d(event):

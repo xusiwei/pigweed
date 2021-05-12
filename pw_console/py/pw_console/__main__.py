@@ -109,7 +109,10 @@ def main() -> int:
 
     default_loggers = []
     if args.test_mode:
-        default_loggers = [_LOG, logging.getLogger(FAKE_DEVICE_LOGGER_NAME)]
+        default_loggers = [
+            # _LOG,
+            logging.getLogger(FAKE_DEVICE_LOGGER_NAME)
+        ]
 
     embed(loggers=default_loggers,
           command_line_args=args,

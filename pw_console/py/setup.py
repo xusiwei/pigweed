@@ -30,14 +30,14 @@ setuptools.setup(
         ]
     },
     install_requires=[
-        "ipdb",
-        "ipython",
-        "jinja2",
-        "prompt_toolkit",
-        'ptpython @ '
-        'git+git://github.com/AnthonyDiGirolamo/ptpython.git@ptpython-library',
-        "pw_cli",
-        "pw_tokenizer",
-        "pygments",
+        'ipdb',
+        'ipython',
+        'jinja2',
+        'prompt_toolkit',
+        # inclusive-language: ignore
+        'ptpython @ git+git://github.com/prompt-toolkit/ptpython.git@master',
+        'pw_cli',
+        'pw_tokenizer',
+        'pygments',
     ],
 )
